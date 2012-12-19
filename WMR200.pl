@@ -33,7 +33,8 @@ receive_packet($dev);
 
 while(1){
 	send_command($dev, 0xD0);
-	receive_packet($dev);
+	my @frame = read_frame($dev);
+	print_byte_array(\@frame);
 	sleep(3);	
 }
 
@@ -86,9 +87,13 @@ sub read_frame($){
 sub receive_packet($){
 	my ($dev) = @_;
 	my $count = $dev->interrupt_read( 0x81, $buf = "", 32, 1000 );
- 	print_bytes($buf, $count);
- 	my @bytes = unpack("C$count", $buf);
- 	return @bytes;	
+	if($count > 0){
+	 	print_bytes($buf, $count);
+	 	my @bytes = unpack("C$count", $buf);
+	 	return @bytes;
+	}else{
+		return ();
+	}	
 }
 
 
@@ -120,7 +125,7 @@ sub print_bytes($) {
 sub print_byte_array($){
 	my ($bytes_array_ref) = @_;
 	
-	if($$bytes_array_ref){
+	if(@{$bytes_array_ref}){
 		foreach my $byte (@{$bytes_array_ref}){
 			printf "%02x ", $bytes[$i];
 		}
