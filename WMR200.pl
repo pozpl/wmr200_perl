@@ -74,13 +74,21 @@ sub read_frame($){
 	}
 	return @frame;
 } 
-   
+
+############################################
+# Usage      : @packet_bytes = read_packet($dev); 
+# Purpose    : aptain one packet of 32 bytes length from a device
+# Returns    : array of octets, that represents device responce
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_frame function definition
 sub receive_packet($){
 	my ($dev) = @_;
 	my $count = $dev->interrupt_read( 0x81, $buf = "", 32, 1000 );
-	#print $count . "\n";
- 	print_bytes($buf, 8);
- 	return $buf;	
+ 	print_bytes($buf, $count);
+ 	my @bytes = unpack("C$count", $buf);
+ 	return @bytes;	
 }
 
 
