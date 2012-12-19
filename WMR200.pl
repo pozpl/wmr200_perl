@@ -1,4 +1,5 @@
 use Device::USB;
+use Time::HiRes;
 
 my $usb = Device::USB->new();
 my $dev = $usb->find_device( 0x0fde, 0xca01);
@@ -67,7 +68,7 @@ sub read_frame($){
 	my @frame;
 	while($packet[0] > 0){
 		my @meaningful_data = @packet;
-		splice(@meaningful_data, 1, $packet[0]);
+		splice(@meaningful_data, 1, $packet[0] + 1);
 		push(@frame, @meaningful_data);
 		@packet = receive_packet($dev);
 	}
