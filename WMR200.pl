@@ -52,11 +52,31 @@ sub close_ws($) {
 	exit;
 }
 
-   
+############################################
+# Usage      : @frame_octets_array = read_frame($dev); 
+# Purpose    : read frame of viriety length from device
+# Returns    : none
+# Parameters : url of the feed to delete or id of that feed
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : n/a
+sub read_frame($){
+	my ($dev) = @_;
+	
+	my @packet = receive_packet($dev);
+	my @frame;
+	while($packet[0] > 0){
+		my @meaningful_data = @packet;
+		splice(@meaningful_data, 1, $packet[0]);
+		push(@frame, @meaningful_data);
+		@packet = receive_packet($dev);
+	}
+	return @frame;
+} 
    
 sub receive_packet($){
 	my ($dev) = @_;
-	my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
+	my $count = $dev->interrupt_read( 0x81, $buf = "", 32, 1000 );
 	#print $count . "\n";
  	print_bytes($buf, 8);
  	return $buf;	
