@@ -55,11 +55,11 @@ sub close_ws($) {
 ############################################
 # Usage      : @frame_octets_array = read_frame($dev); 
 # Purpose    : read frame of viriety length from device
-# Returns    : none
-# Parameters : url of the feed to delete or id of that feed
+# Returns    : array of octets, that represents device responce
+# Parameters : device handler
 # Throws     : no exceptions
 # Comments   : n/a
-# See Also   : n/a
+# See Also   : read_packet function definition
 sub read_frame($){
 	my ($dev) = @_;
 	
