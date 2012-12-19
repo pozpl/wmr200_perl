@@ -109,6 +109,24 @@ sub print_bytes($) {
 	printf "\n";
 }
 
+############################################
+# Usage      : print_byte_array(\@byte_array); 
+# Purpose    : print contents of a byte array
+# Returns    : non
+# Parameters : byte array reference
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : print_bytes function defenition
+sub print_byte_array($){
+	my ($bytes_array_ref) = @_;
+	
+	if($$bytes_array_ref){
+		foreach my $byte (@{$bytes_array_ref}){
+			printf "%02x ", $bytes[$i];
+		}
+	}
+}
+
 sub send_command($$){
 	my($dev, $command) = @_;
 	my @params = (0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00);
