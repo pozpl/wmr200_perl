@@ -68,8 +68,8 @@ sub read_frame($){
 	my @packet = receive_packet($dev);
 	my @frame;
 	while($packet[0] > 0){
-		my @meaningful_data = @packet;
-		splice(@meaningful_data, 1, $packet[0] + 1);
+		my @packet_reduced = @packet;
+		my @meaningful_data = splice(@packet_reduced, 1, $packet[0] + 1);
 		push(@frame, @meaningful_data);
 		@packet = receive_packet($dev);
 	}
@@ -86,7 +86,7 @@ sub read_frame($){
 # See Also   : read_frame function definition
 sub receive_packet($){
 	my ($dev) = @_;
-	my $count = $dev->interrupt_read( 0x81, $buf = "", 32, 1000 );
+	my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
 	if($count > 0){
 	 	print_bytes($buf, $count);
 	 	my @bytes = unpack("C$count", $buf);
