@@ -55,6 +55,23 @@ sub close_ws($) {
 }
 
 ############################################
+# Usage      : clear_recevier($dev); 
+# Purpose    : draw all data from device buffers to get clean input sequence during a data
+#				receive process
+# Returns    : none
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_packet function definition
+sub clearRecevier($){
+	my ($dev) = @_;
+	my $packet = read_packet($dev);
+	while($packet[0] > 0){
+		$packet = read_packet($dev);
+	}
+}
+
+############################################
 # Usage      : @frame_octets_array = read_frame($dev); 
 # Purpose    : read frame of viriety length from device
 # Returns    : array of octets, that represents device responce
