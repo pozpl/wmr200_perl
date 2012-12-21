@@ -1,23 +1,23 @@
 use Device::USB;
 use Time::HiRes;
 
-my $usb = Device::USB->new();
-my $dev = $usb->find_device( 0x0fde, 0xca01 );
+#my $usb = Device::USB->new();
+#my $dev = $usb->find_device( 0x0fde, 0xca01 );
+#
+#printf "Device: %04X:%04X\n", $dev->idVendor(), $dev->idProduct();
+#print "Manufactured by ", $dev->manufacturer(), "\n", " Product: ", $dev->product(), "\n";
+#
+#$dev->open();
+#if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
+#	$dev->detach_kernel_driver_np(0);
+#}
+#
+#if ( $dev->claim_interface(0) != 0 ) {
+#	printf "usb_claim_interface failed\n";
+#}
+#$dev->set_altinterface(0);
 
-printf "Device: %04X:%04X\n", $dev->idVendor(), $dev->idProduct();
-print "Manufactured by ", $dev->manufacturer(), "\n", " Product: ", $dev->product(), "\n";
-
-$dev->open();
-if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
-	$dev->detach_kernel_driver_np(0);
-}
-
-if ( $dev->claim_interface(0) != 0 ) {
-	printf "usb_claim_interface failed\n";
-}
-$dev->set_altinterface(0);
-
-#$dev->set_configuration( $CFG );
+my $dev = connect_to_device();
 
 send_init($dev);
 receive_packet($dev);
