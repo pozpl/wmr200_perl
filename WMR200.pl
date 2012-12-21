@@ -19,16 +19,16 @@ use Time::HiRes;
 
 my $dev = connect_to_device();
 
-send_init($dev);
-receive_packet($dev);
-send_ready($dev);
-receive_packet($dev);
-send_command( $dev, 0xDF );
-receive_packet($dev);
-send_command( $dev, 0xDA );
-receive_packet($dev);
-send_command( $dev, 0xD3 );
-receive_packet($dev);
+#send_init($dev);
+#receive_packet($dev);
+#send_ready($dev);
+#receive_packet($dev);
+#send_command( $dev, 0xDF );
+#receive_packet($dev);
+#send_command( $dev, 0xDA );
+#receive_packet($dev);
+#send_command( $dev, 0xD3 );
+#receive_packet($dev);
 
 while (1) {
 	send_command( $dev, 0xD0 );
@@ -166,7 +166,7 @@ sub receive_packet($) {
 	my ($dev) = @_;
 	my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
 	if ( $count > 0 ) {
-		print_bytes( $buf, $count );
+#		print_bytes( $buf, $count );
 		my @bytes = unpack( "C$count", $buf );
 		return @bytes;
 	}
@@ -207,7 +207,8 @@ sub print_byte_array($) {
 		foreach my $byte ( @{$bytes_array_ref} ) {
 			printf "%02x ", $bytes[$i];
 		}
-	}
+		print "\n";
+	}	
 }
 
 sub send_command($$) {
