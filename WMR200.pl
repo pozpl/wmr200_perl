@@ -211,6 +211,15 @@ sub print_byte_array($) {
 	}	
 }
 
+############################################
+# Usage      : send_command($device, 0XDA);
+# Purpose    : send command to the device.
+# Returns    : command execution status
+# Parameters : device handeler
+#              command octet
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_frame function defenition
 sub send_command($$) {
 	my ( $dev, $command ) = @_;
 	my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
@@ -218,6 +227,7 @@ sub send_command($$) {
 	my $tbuf = pack( 'CCCCCCCC', @params );
 	my $retval = send_packet( $dev, $tbuf );
 	print "Commmand retval $retval \n";
+	return $retval;
 }
 
 sub send_packet($$) {
