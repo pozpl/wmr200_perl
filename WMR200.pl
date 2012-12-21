@@ -51,6 +51,15 @@ sub close_ws($) {
 	exit;
 }
 
+############################################
+# Usage      : connect_to_device();
+# Purpose    : identify and connec to a device and send init sequences to open a session 
+#              for data handling
+# Returns    : device handler ready to data interchange
+# Parameters : none
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : n/a
 sub connect_to_device($) {
 	my $usb = Device::USB->new();
 	my $dev = $usb->find_device( 0x0fde, 0xca01 );
@@ -88,6 +97,22 @@ sub connect_to_device($) {
 	clear_recevier($dev);
 	print "USB connected";
 	return $dev;
+}
+
+############################################
+# Usage      : diconnect_from_device();
+# Purpose    : diconnect from device 
+# Returns    : none
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : n/a
+sub diconnect_from_device($){
+    my ($dev) = @_;
+    eval{
+        send_command(0xDF);
+        close_ws($dev);
+    }
 }
 
 ############################################
