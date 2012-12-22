@@ -163,16 +163,18 @@ sub receive_frames($){
     my @packets;
     while ( $packet[0] > 0 ) {
         my @packet_reduced = @packet;
-        my @meaningful_data = splice( @packet_reduced, 1, $packet[0] + 1 );
-        push( @packets, \@meaningful_data );
+        my @meaningful_data = @packet[ 1,  $packet[0] + 1 ];
+        push( @packets, @meaningful_data );
         @packet = receive_packet($dev);
     }
     print_byte_array(@packets);
     
     my @frames;
     #pick up frames from the packets obtained from the device
-    foreach my $packet_data_ref (@packets){
-        
+    while(1){
+        if ($packets[0] < 0xD1 || $packets[0] > 0xD9){
+            
+        }
     }
     
     return @frame;
