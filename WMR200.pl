@@ -163,7 +163,7 @@ sub receive_frames($){
         print "Empty input\n";
         return ();
     }
-    print_byte_array(@packets);
+    print_byte_array(\@packets);
     
     my @frames;
     #pick up frames from the packets obtained from the device
