@@ -1,34 +1,11 @@
 use Device::USB;
 use Time::HiRes;
 
-#my $usb = Device::USB->new();
-#my $dev = $usb->find_device( 0x0fde, 0xca01 );
-#
-#printf "Device: %04X:%04X\n", $dev->idVendor(), $dev->idProduct();
-#print "Manufactured by ", $dev->manufacturer(), "\n", " Product: ", $dev->product(), "\n";
-#
-#$dev->open();
-#if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
-#	$dev->detach_kernel_driver_np(0);
-#}
-#
-#if ( $dev->claim_interface(0) != 0 ) {
-#	printf "usb_claim_interface failed\n";
-#}
-#$dev->set_altinterface(0);
 
 my $dev = connect_to_device();
-
-#send_init($dev);
-#receive_packet($dev);
-#send_ready($dev);
-#receive_packet($dev);
-#send_command( $dev, 0xDF );
-#receive_packet($dev);
-#send_command( $dev, 0xDA );
-#receive_packet($dev);
-#send_command( $dev, 0xD3 );
-#receive_packet($dev);
+while(!$dev){
+    $dev = connect_to_device();
+}
 
 while (1) {
     send_command( $dev, 0xD0 );
@@ -40,7 +17,7 @@ while (1) {
 }
 
 #close session
-connect_to_device($dev);
+disconnect_from_device($dev);
 
 ##
 ## Close the connection to the Weather Station & exit
@@ -84,43 +61,44 @@ sub connect_to_device($) {
     
     print "Send init sequence...";
     send_init($dev);
-    clear_recevier($dev);
+#    clear_recevier($dev);
     print "done\n";
     print "Send ready sequence...";
     send_ready($dev);
-    clear_recevier($dev);
+#    clear_recevier($dev);
     print "done\n";
     print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
-    clear_recevier($dev);
+#    clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
-    send_command( $dev, 0xDA );sleep(1);
+    send_command( $dev, 0xDA );
     my @hello_packet = receive_packet($dev);
     
-#    if ( @hello_packet == 0 ) {
-#        print "error no responce\n";
-#        return 0;
-#    }
-#    elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
-#        print "Station identified\n";
-#    }else{
-#        print "error bad hello response\n";
-#    }
+    if ( @hello_packet == 0 ) {
+        print "error no responce\n";
+        return 0;
+    }
+    elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
+        print "Station identified\n";
+    }else{
+        print "error bad hello response\n";
+        return 0;
+    }
     clear_recevier($dev);
     print "\nUSB connected\n";
     return $dev;
 }
 
 ############################################
-# Usage      : diconnect_from_device();
-# Purpose    : diconnect from device
+# Usage      : disconnect_from_device();
+# Purpose    : disconnect from device
 # Returns    : none
 # Parameters : device handler
 # Throws     : no exceptions
 # Comments   : n/a
 # See Also   : n/a
-sub diconnect_from_device($) {
+sub disconnect_from_device($) {
     my ($dev) = @_;
     eval {
         send_command($dev, 0xDF);
@@ -180,7 +158,7 @@ sub receive_frames($){
         push( @packets, @meaningful_data );
         @packet = receive_packet($dev);
     }
-    #print_byte_array(@packets);
+    print_byte_array(@packets);
     
     my @frames;
     #pick up frames from the packets obtained from the device
@@ -198,13 +176,16 @@ sub receive_frames($){
             #so this is bad packet
             print "Packet lenght is less than in $packets[1]\n";
             last;
-        }elsif(@packets < 8){
+        }elsif($packets[1] < 8 || @packets < 9){
             #packet length mas be no less than 8
             print "Packet lenght is less than 8\n";
             last;
         }else{
+            $bytes_langth = @packets;
+            print "BYTES LANGTH $bytes_langth\n";
             #get frame
-            my @frame = @packets[0, $#packets + 1];
+            my @frame = @packets[0, $packets[1]];
+            my $frame_length = $packets[1];
             #trancate packets sequence
             @packets = @packets[$packets[1], @packets];
             
@@ -268,7 +249,7 @@ sub receive_packet($) {
     my ($dev) = @_;
     my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
     if ( $count > 0 ) {
-        #		print_bytes( $buf, $count );
+#        print_bytes( $buf, $count );
         my @bytes = unpack( "C$count", $buf );
         return @bytes;
     }
@@ -305,7 +286,7 @@ sub print_bytes($) {
 sub print_byte_array($) {
     my ($bytes_array_ref) = @_;
 
-    if ( @{$bytes_array_ref} ) {
+    if ( @{$bytes_array_ref} > 0 ) {
         foreach my $byte ( @{$bytes_array_ref} ) {
             printf "%02x ", $bytes[$i];
         }
