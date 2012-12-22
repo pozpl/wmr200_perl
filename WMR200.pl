@@ -337,7 +337,7 @@ sub send_packet($$) {
 }
 
 sub send_init($) {
-    my ($buf) = @_;
+    my ($dev) = @_;
     my @packet = ( 0x20, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
     my $retval = send_packet( $dev, \@packet );
     return $retval;
@@ -345,7 +345,7 @@ sub send_init($) {
 }
 
 sub send_ready($) {
-    my ($buf) = @_;
+    my ($dev) = @_;
     my @packet = ( 0x01, 0xd0, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
     my $retval = send_packet( $dev, \@packet );
     return $retval;
