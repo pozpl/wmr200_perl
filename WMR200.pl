@@ -196,17 +196,13 @@ sub receive_frames($){
             @packets = @packets[$packets[1], @packets];
             
             #validate frame with checksumm
-            
-            
-             # The last 2 octets of D2 - D9 frames are always the low and high byte
+            # The last 2 octets of D2 - D9 frames are always the low and high byte
             # of the checksum. We ignore all frames that don't have a matching
             # checksum.
-            if self.checkSum(frame[0:len(frame)-2],
-                           frame[len(frame) - 2] |
-                           (frame[len(frame) - 1] << 8)) == False:
-            self.checkSumErrors += 1
-            break
-            
+            if(! validate_check_summ(\@frame[0, @frame - 2],  $frame[@frame -2] | $frame[@frame - 1] << 8)){
+                print "Frame checksumm is broken\n";
+                last;
+            }
         }
     }
     
