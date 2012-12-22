@@ -120,7 +120,7 @@ sub connect_to_device($) {
 sub diconnect_from_device($) {
     my ($dev) = @_;
     eval {
-        send_command(0xDF);
+        send_command($dev, 0xDF);
         close_ws($dev);
     };
 }
@@ -136,9 +136,9 @@ sub diconnect_from_device($) {
 # See Also   : read_packet function definition
 sub clear_recevier($) {
     my ($dev) = @_;
-    my $packet = read_packet($dev);
+    my $packet = receive_packet($dev);
     while ( $packet[0] > 0 ) {
-        $packet = read_packet($dev);
+        $packet = receive_packet($dev);
     }
 }
 
@@ -177,7 +177,7 @@ sub receive_frames($){
         push( @packets, @meaningful_data );
         @packet = receive_packet($dev);
     }
-    print_byte_array(@packets);
+    #print_byte_array(@packets);
     
     my @frames;
     #pick up frames from the packets obtained from the device
@@ -263,7 +263,6 @@ sub receive_packet($) {
     my ($dev) = @_;
     my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
     if ( $count > 0 ) {
-
         #		print_bytes( $buf, $count );
         my @bytes = unpack( "C$count", $buf );
         return @bytes;
@@ -321,10 +320,9 @@ sub print_byte_array($) {
 sub send_command($$) {
     my ( $dev, $command ) = @_;
     my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
-    print $command . "\n";
     my $tbuf = pack( 'CCCCCCCC', @params );
     my $retval = send_packet( $dev, $tbuf );
-    print "Commmand retval $retval \n";
+    #print "Commmand retval $retval \n";
     return $retval;
 }
 
