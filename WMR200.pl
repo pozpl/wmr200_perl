@@ -67,6 +67,7 @@ sub connect_to_device($) {
     print "Manufactured by ", $dev->manufacturer(), "\n",
       " Product: ", $dev->product(), "\n";
 
+    print "Open device...  ";
     $dev->open();
     if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
         $dev->detach_kernel_driver_np(0);
@@ -77,25 +78,34 @@ sub connect_to_device($) {
         return 0;
     }
     $dev->set_altinterface(0);
-
-    #$dev->set_configuration( $CFG );
-
+    print "done\n";
+    
+    print "Send init sequence...";
     send_init($dev);
     clear_recevier($dev);
+    print "done\n";
+    print "Send ready sequence...";
     send_ready($dev);
     clear_recevier($dev);
+    print "done\n";
+    print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
     clear_recevier($dev);
+    print "done\n";
+    print "Send hello packet...";
     send_command( $dev, 0xDA );
     @hello_packet = receive_packet($dev);
     if ( @hello_packet = 0 ) {
+        print "error no responce\n";
         return 0;
     }
     elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
         print "Station identified\n";
+    }else{
+        print "error bad hello response\n";
     }
     clear_recevier($dev);
-    print "USB connected";
+    print "\nUSB connected\n";
     return $dev;
 }
 
@@ -330,7 +340,7 @@ sub send_init($) {
     my ($buf) = @_;
     my @packet = ( 0x20, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
     my $retval = send_packet( $dev, \@packet );
-    print "Init retval $retval \n";
+    return $retval;
 
 }
 
@@ -338,5 +348,5 @@ sub send_ready($) {
     my ($buf) = @_;
     my @packet = ( 0x01, 0xd0, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
     my $retval = send_packet( $dev, \@packet );
-    print "Ready retval $retval \n";
+    return $retval;
 }
