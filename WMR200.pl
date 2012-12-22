@@ -31,29 +31,28 @@ my $dev = connect_to_device();
 #receive_packet($dev);
 
 while (1) {
-	send_command( $dev, 0xD0 );
-	my @frame = read_frame($dev);
-	print_byte_array( \@frame );
-	sleep(3);
+    send_command( $dev, 0xD0 );
+    my @frame = read_frame($dev);
+    print_byte_array( \@frame );
+    sleep(3);
 }
 
 #close session
-send_command( $dev, 0xDF );
-close_ws($dev);
+connect_to_device($dev);
 
 ##
 ## Close the connection to the Weather Station & exit
 ##
 sub close_ws($) {
-	my ($dev) = @_;
-	$dev->release_interface(0);
-	undef $dev;
-	exit;
+    my ($dev) = @_;
+    $dev->release_interface(0);
+    undef $dev;
+    exit;
 }
 
 ############################################
 # Usage      : connect_to_device();
-# Purpose    : identify and connec to a device and send init sequences to open a session 
+# Purpose    : identify and connec to a device and send init sequences to open a session
 #              for data handling
 # Returns    : device handler ready to data interchange
 # Parameters : none
@@ -61,58 +60,59 @@ sub close_ws($) {
 # Comments   : n/a
 # See Also   : n/a
 sub connect_to_device($) {
-	my $usb = Device::USB->new();
-	my $dev = $usb->find_device( 0x0fde, 0xca01 );
+    my $usb = Device::USB->new();
+    my $dev = $usb->find_device( 0x0fde, 0xca01 );
 
-	printf "Device: %04X:%04X\n", $dev->idVendor(), $dev->idProduct();
-	print "Manufactured by ", $dev->manufacturer(), "\n",
-	  " Product: ", $dev->product(), "\n";
+    printf "Device: %04X:%04X\n", $dev->idVendor(), $dev->idProduct();
+    print "Manufactured by ", $dev->manufacturer(), "\n",
+      " Product: ", $dev->product(), "\n";
 
-	$dev->open();
-	if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
-		$dev->detach_kernel_driver_np(0);
-	}
+    $dev->open();
+    if ( $dev->get_driver_np( 0, $namebuf, 256 ) == 0 ) {
+        $dev->detach_kernel_driver_np(0);
+    }
 
-	if ( $dev->claim_interface(0) != 0 ) {
-		printf "usb_claim_interface failed\n";
-		return 0;
-	}
-	$dev->set_altinterface(0);
+    if ( $dev->claim_interface(0) != 0 ) {
+        printf "usb_claim_interface failed\n";
+        return 0;
+    }
+    $dev->set_altinterface(0);
 
-	#$dev->set_configuration( $CFG );
+    #$dev->set_configuration( $CFG );
 
-	send_init($dev);
-	clear_recevier($dev);
-	send_ready($dev);
-	clear_recevier($dev);
-	send_command( $dev, 0xDF );
-	clear_recevier($dev);	
-	send_command( $dev, 0xDA );
-	@hello_packet = receive_packet($dev);
-	if(@hello_packet = 0){
-		return 0;
-	}elsif($hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ){
-		print "Station identified\n";		
-	}
-	clear_recevier($dev);
-	print "USB connected";
-	return $dev;
+    send_init($dev);
+    clear_recevier($dev);
+    send_ready($dev);
+    clear_recevier($dev);
+    send_command( $dev, 0xDF );
+    clear_recevier($dev);
+    send_command( $dev, 0xDA );
+    @hello_packet = receive_packet($dev);
+    if ( @hello_packet = 0 ) {
+        return 0;
+    }
+    elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
+        print "Station identified\n";
+    }
+    clear_recevier($dev);
+    print "USB connected";
+    return $dev;
 }
 
 ############################################
 # Usage      : diconnect_from_device();
-# Purpose    : diconnect from device 
+# Purpose    : diconnect from device
 # Returns    : none
 # Parameters : device handler
 # Throws     : no exceptions
 # Comments   : n/a
 # See Also   : n/a
-sub diconnect_from_device($){
+sub diconnect_from_device($) {
     my ($dev) = @_;
-    eval{
+    eval {
         send_command(0xDF);
         close_ws($dev);
-    }
+    };
 }
 
 ############################################
@@ -125,11 +125,11 @@ sub diconnect_from_device($){
 # Comments   : n/a
 # See Also   : read_packet function definition
 sub clear_recevier($) {
-	my ($dev) = @_;
-	my $packet = read_packet($dev);
-	while ( $packet[0] > 0 ) {
-		$packet = read_packet($dev);
-	}
+    my ($dev) = @_;
+    my $packet = read_packet($dev);
+    while ( $packet[0] > 0 ) {
+        $packet = read_packet($dev);
+    }
 }
 
 ############################################
@@ -141,17 +141,53 @@ sub clear_recevier($) {
 # Comments   : n/a
 # See Also   : read_packet function definition
 sub read_frame($) {
-	my ($dev) = @_;
+    my ($dev) = @_;
 
-	my @packet = receive_packet($dev);
-	my @frame;
-	while ( $packet[0] > 0 ) {
-		my @packet_reduced = @packet;
-		my @meaningful_data = splice( @packet_reduced, 1, $packet[0] + 1 );
-		push( @frame, @meaningful_data );
-		@packet = receive_packet($dev);
-	}
-	return @frame;
+    my @packet = receive_packet($dev);
+    my @frame;
+    while ( $packet[0] > 0 ) {
+        my @packet_reduced = @packet;
+        my @meaningful_data = splice( @packet_reduced, 1, $packet[0] + 1 );
+        push( @frame, @meaningful_data );
+        @packet = receive_packet($dev);
+    }
+    return @frame;
+}
+
+
+sub receive_frames($){
+    my ($dev) = @_;
+    
+    #draw all data from the device
+    my @packet = receive_packet($dev);
+    my @packets;
+    while ( $packet[0] > 0 ) {
+        my @packet_reduced = @packet;
+        my @meaningful_data = splice( @packet_reduced, 1, $packet[0] + 1 );
+        push( @packets, \@meaningful_data );
+        @packet = receive_packet($dev);
+    }
+    print_byte_array(@packets);
+    
+    my @frames;
+    #pick up frames from the packets obtained from the device
+    foreach my $packet_data_ref (@packets){
+        
+    }
+    
+    return @frame;
+        
+}
+
+sub getData($) {
+    my ($dev) = @_;
+
+    while (1) {
+        send_command( $dev, 0xD0 );
+        my @frame = read_frame($dev);
+        print_byte_array( \@frame );
+        sleep(3);
+    }
 }
 
 ############################################
@@ -163,33 +199,34 @@ sub read_frame($) {
 # Comments   : n/a
 # See Also   : read_frame function definition
 sub receive_packet($) {
-	my ($dev) = @_;
-	my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
-	if ( $count > 0 ) {
-#		print_bytes( $buf, $count );
-		my @bytes = unpack( "C$count", $buf );
-		return @bytes;
-	}
-	else {
-		return ();
-	}
+    my ($dev) = @_;
+    my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
+    if ( $count > 0 ) {
+
+        #		print_bytes( $buf, $count );
+        my @bytes = unpack( "C$count", $buf );
+        return @bytes;
+    }
+    else {
+        return ();
+    }
 }
 
 sub print_bytes($) {
-	my $buf = shift;
-	my $len = shift;
+    my $buf = shift;
+    my $len = shift;
 
-	if ( $len <= 0 ) {
-		return;
-	}
-	my @bytes = unpack( "C$len", $buf );
+    if ( $len <= 0 ) {
+        return;
+    }
+    my @bytes = unpack( "C$len", $buf );
 
-	if ( $len > 0 ) {
-		for ( my $i = 0 ; $i < $len ; $i++ ) {
-			printf "%02x ", $bytes[$i];
-		}
-	}
-	printf "\n";
+    if ( $len > 0 ) {
+        for ( my $i = 0 ; $i < $len ; $i++ ) {
+            printf "%02x ", $bytes[$i];
+        }
+    }
+    printf "\n";
 }
 
 ############################################
@@ -201,14 +238,14 @@ sub print_bytes($) {
 # Comments   : n/a
 # See Also   : print_bytes function defenition
 sub print_byte_array($) {
-	my ($bytes_array_ref) = @_;
+    my ($bytes_array_ref) = @_;
 
-	if ( @{$bytes_array_ref} ) {
-		foreach my $byte ( @{$bytes_array_ref} ) {
-			printf "%02x ", $bytes[$i];
-		}
-		print "\n";
-	}	
+    if ( @{$bytes_array_ref} ) {
+        foreach my $byte ( @{$bytes_array_ref} ) {
+            printf "%02x ", $bytes[$i];
+        }
+        print "\n";
+    }
 }
 
 ############################################
@@ -221,34 +258,34 @@ sub print_byte_array($) {
 # Comments   : n/a
 # See Also   : read_frame function defenition
 sub send_command($$) {
-	my ( $dev, $command ) = @_;
-	my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
-	print $command . "\n";
-	my $tbuf = pack( 'CCCCCCCC', @params );
-	my $retval = send_packet( $dev, $tbuf );
-	print "Commmand retval $retval \n";
-	return $retval;
+    my ( $dev, $command ) = @_;
+    my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
+    print $command . "\n";
+    my $tbuf = pack( 'CCCCCCCC', @params );
+    my $retval = send_packet( $dev, $tbuf );
+    print "Commmand retval $retval \n";
+    return $retval;
 }
 
 sub send_packet($$) {
-	my ( $dev, $packet ) = @_;
-	print $command . "\n";
-	my $tbuf = pack( 'CCCCCCCC', @$packet );
-	my $retval = $dev->control_msg( 0x21, 9, 0x200, 0, $tbuf, 8, 1000 );
-	return $retval;
+    my ( $dev, $packet ) = @_;
+    print $command . "\n";
+    my $tbuf = pack( 'CCCCCCCC', @$packet );
+    my $retval = $dev->control_msg( 0x21, 9, 0x200, 0, $tbuf, 8, 1000 );
+    return $retval;
 }
 
 sub send_init($) {
-	my ($buf) = @_;
-	my @packet = ( 0x20, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
-	my $retval = send_packet( $dev, \@packet );
-	print "Init retval $retval \n";
+    my ($buf) = @_;
+    my @packet = ( 0x20, 0x00, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
+    my $retval = send_packet( $dev, \@packet );
+    print "Init retval $retval \n";
 
 }
 
 sub send_ready($) {
-	my ($buf) = @_;
-	my @packet = ( 0x01, 0xd0, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
-	my $retval = send_packet( $dev, \@packet );
-	print "Ready retval $retval \n";
+    my ($buf) = @_;
+    my @packet = ( 0x01, 0xd0, 0x08, 0x01, 0x00, 0x00, 0x00, 0x00 );
+    my $retval = send_packet( $dev, \@packet );
+    print "Ready retval $retval \n";
 }
