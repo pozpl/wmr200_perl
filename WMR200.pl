@@ -158,6 +158,11 @@ sub receive_frames($){
         push( @packets, @meaningful_data );
         @packet = receive_packet($dev);
     }
+    if(@packets == 0){
+        #we do not receive anything its, bad
+        print "Empty input\n";
+        return ();
+    }
     print_byte_array(@packets);
     
     my @frames;
@@ -247,7 +252,7 @@ sub getData($) {
 # See Also   : read_frame function definition
 sub receive_packet($) {
     my ($dev) = @_;
-    my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 1000 );
+    my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
     if ( $count > 0 ) {
 #        print_bytes( $buf, $count );
         my @bytes = unpack( "C$count", $buf );
