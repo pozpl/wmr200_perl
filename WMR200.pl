@@ -1,5 +1,6 @@
 use Device::USB;
 use Time::HiRes;
+use DateTime;
 
 my $dev = connect_to_device();
 while ( !$dev ) {
@@ -139,6 +140,33 @@ sub read_frame($) {
         @packet = receive_packet($dev);
     }
     return @frame;
+}
+
+sub decode_frame($){
+    my ($frame_ref)= @_;
+    
+    my $frame_type = ${$frame_ref}[0];
+}
+
+sub decode_timestamp($){
+    my ($timestamp_ref) = @_;
+    
+    my $minutes = ${$timestamp_ref}[0];
+    my $hours = ${$timestamp_ref}[1];
+    my $day_of_month = ${$timestamp_ref}[2];
+    $day_of_month = $day_of_month == 0 ? 1 : $day_of_month;
+    my $month =  ${$timestamp_ref}[3];
+    my $year = 2000 + ${$timestamp_ref}[4];
+    my $date_time = DateTime->new(
+      year       => $year,
+      month      => $month,
+      day        => $day_of_month,
+      hour       => $hours,
+      minute     => $minutes,
+      time_zone  => 'Asia/Vladivostok',
+    );
+    
+    return $date_time;
 }
 
 sub receive_frames($) {
