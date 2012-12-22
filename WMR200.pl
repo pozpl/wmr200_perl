@@ -32,8 +32,10 @@ my $dev = connect_to_device();
 
 while (1) {
     send_command( $dev, 0xD0 );
-    my @frame = read_frame($dev);
-    print_byte_array( \@frame );
+    my @frames = receive_frames($dev);
+    foreach $frame_ref (@frames){
+        print_byte_array( \@frame );    
+    }    
     sleep(3);
 }
 
@@ -93,17 +95,18 @@ sub connect_to_device($) {
     clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
-    send_command( $dev, 0xDA );
-    @hello_packet = receive_packet($dev);
-    if ( @hello_packet = 0 ) {
-        print "error no responce\n";
-        return 0;
-    }
-    elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
-        print "Station identified\n";
-    }else{
-        print "error bad hello response\n";
-    }
+    send_command( $dev, 0xDA );sleep(1);
+    my @hello_packet = receive_packet($dev);
+    
+#    if ( @hello_packet == 0 ) {
+#        print "error no responce\n";
+#        return 0;
+#    }
+#    elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
+#        print "Station identified\n";
+#    }else{
+#        print "error bad hello response\n";
+#    }
     clear_recevier($dev);
     print "\nUSB connected\n";
     return $dev;
@@ -213,10 +216,12 @@ sub receive_frames($){
                 print "Frame checksumm is broken\n";
                 last;
             }
+            
+            push(@frames, \@frame);
         }
     }
     
-    return @frame;
+    return @frames;
         
 }
 ############################################
