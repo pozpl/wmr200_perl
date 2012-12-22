@@ -1,20 +1,12 @@
 use Device::USB;
 use Time::HiRes;
 
-
 my $dev = connect_to_device();
-while(!$dev){
+while ( !$dev ) {
     $dev = connect_to_device();
 }
 
-while (1) {
-    send_command( $dev, 0xD0 );
-    my @frames = receive_frames($dev);
-    foreach $frame_ref (@frames){
-        print_byte_array( \@frame );    
-    }    
-    sleep(3);
-}
+get_data($dev);
 
 #close session
 disconnect_from_device($dev);
@@ -58,30 +50,34 @@ sub connect_to_device($) {
     }
     $dev->set_altinterface(0);
     print "done\n";
-    
+
     print "Send init sequence...";
     send_init($dev);
-#    clear_recevier($dev);
+
+    #    clear_recevier($dev);
     print "done\n";
     print "Send ready sequence...";
     send_ready($dev);
-#    clear_recevier($dev);
+
+    #    clear_recevier($dev);
     print "done\n";
     print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
-#    clear_recevier($dev);
+
+    #    clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
     send_command( $dev, 0xDA );
     my @hello_packet = receive_packet($dev);
-    
+
     if ( @hello_packet == 0 ) {
         print "error no responce\n";
         return 0;
     }
     elsif ( $hello_packet[0] == 0x01 && $hello_packet[1] == 0xD1 ) {
         print "Station identified\n";
-    }else{
+    }
+    else {
         print "error bad hello response\n";
         return 0;
     }
@@ -101,7 +97,7 @@ sub connect_to_device($) {
 sub disconnect_from_device($) {
     my ($dev) = @_;
     eval {
-        send_command($dev, 0xDF);
+        send_command( $dev, 0xDF );
         close_ws($dev);
     };
 }
@@ -145,70 +141,86 @@ sub read_frame($) {
     return @frame;
 }
 
-
-sub receive_frames($){
+sub receive_frames($) {
     my ($dev) = @_;
-    
+
     #draw all data from the device
     my @packet = receive_packet($dev);
     my @packets;
     while ( $packet[0] > 0 ) {
         my @packet_reduced = @packet;
-        my @meaningful_data = @packet[ 1,  $packet[0] + 1 ];
+        my @meaningful_data = @packet[ 1, $packet[0] + 1 ];
         push( @packets, @meaningful_data );
         @packet = receive_packet($dev);
     }
-    if(@packets == 0){
+    if ( @packets == 0 ) {
+
         #we do not receive anything its, bad
         print "Empty input\n";
         return ();
     }
-    print_byte_array(\@packets);
-    
+    print_byte_array( \@packets );
+
     my @frames;
+
     #pick up frames from the packets obtained from the device
-    while(1){
-        if ($packets[0] < 0xD1 || $packets[0] > 0xD9){
-            print "bad input sequence frames first elements mast be in [0xD1, 0xD9] interval\n";
+    while (1) {
+        if ( $packets[0] < 0xD1 || $packets[0] > 0xD9 ) {
+            print
+"bad input sequence frames first elements mast be in [0xD1, 0xD9] interval\n";
             last;
         }
-        if($packets[0] == 0xD1 && @packets == 1){
+        if ( $packets[0] == 0xD1 && @packets == 1 ) {
+
             #oh man we have only on octet here
             @frame = (0xD1);
-            push (@frames, \@frame);
-        }elsif(@packets < 2 || @packets < $packets[1]){
-            #something wrontg with a frame we have, it has length less then in packets[1], 
+            push( @frames, \@frame );
+        }
+        elsif ( @packets < 2 || @packets < $packets[1] ) {
+
+            #something wrontg with a frame we have, it has length less then in packets[1],
             #so this is bad packet
             print "Packet lenght is less than in $packets[1]\n";
             last;
-        }elsif($packets[1] < 8 || @packets < 9){
+        }
+        elsif ( $packets[1] < 8 || @packets < 9 ) {
+
             #packet length mas be no less than 8
             print "Packet lenght is less than 8\n";
             last;
-        }else{
+        }
+        else {
             $bytes_langth = @packets;
             print "BYTES LANGTH $bytes_langth\n";
+
             #get frame
-            my @frame = @packets[0, $packets[1]];
+            my @frame = @packets[ 0, $packets[1] ];
             my $frame_length = $packets[1];
+
             #trancate packets sequence
-            @packets = @packets[$packets[1], @packets];
-            
+            @packets = @packets[ $packets[1], @packets ];
+
             #validate frame with checksumm
             # The last 2 octets of D2 - D9 frames are always the low and high byte
             # of the checksum. We ignore all frames that don't have a matching
             # checksum.
-            if(! validate_check_summ(\@frame[0, @frame - 2],  $frame[@frame -2] | $frame[@frame - 1] << 8)){
+            if (
+                !validate_check_summ(
+                    \@frame[ 0, @frame - 2 ],
+                    $frame[ @frame - 2 ] | $frame[ @frame - 1 ] << 8
+                )
+              )
+            {
                 print "Frame checksumm is broken\n";
                 last;
             }
-            
-            push(@frames, \@frame);
+
+            push( @frames, \@frame );
         }
     }
-    
+
     return @frames;
-        
+
 }
 ############################################
 # Usage      : $is_valid = validate_check_summ(\@frame[0, @frame - 2],  $frame[@frame -2] | $frame[@frame - 1] << 8);
@@ -217,30 +229,44 @@ sub receive_frames($){
 # Parameters : frame to check, check summ
 # Throws     : none
 # Comments   : n/a
-# See Also   : 
-sub validate_check_summ($$){
-    my ($packet_ref, $check_summ) = @_;
+# See Also   :
+sub validate_check_summ($$) {
+    my ( $packet_ref, $check_summ ) = @_;
     my $sum = 0;
-    foreach my $byte (@$packet_ref){
+    foreach my $byte (@$packet_ref) {
         $sum += $byte;
     }
-    if($sum == $check_summ){
+    if ( $sum == $check_summ ) {
         return 1;
-    }else{
+    }
+    else {
         return 0;
-    }    
+    }
 }
 
-sub getData($) {
+############################################
+# Usage      : get_data($dev);
+# Purpose    : run permanent cycle to get frames and do something with them
+# Returns    : none
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_frame function definition
+sub get_data($) {
     my ($dev) = @_;
 
     while (1) {
         send_command( $dev, 0xD0 );
-        my @frame = read_frame($dev);
-        print_byte_array( \@frame );
+        my @frames = receive_frames($dev);
+        foreach $frame_ref (@frames) {
+            print_byte_array( \@frame );
+        }
         sleep(3);
     }
+
 }
+
+
 
 ############################################
 # Usage      : @packet_bytes = read_packet($dev);
@@ -254,7 +280,8 @@ sub receive_packet($) {
     my ($dev) = @_;
     my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
     if ( $count > 0 ) {
-#        print_bytes( $buf, $count );
+
+        #        print_bytes( $buf, $count );
         my @bytes = unpack( "C$count", $buf );
         return @bytes;
     }
@@ -313,6 +340,7 @@ sub send_command($$) {
     my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
     my $tbuf = pack( 'CCCCCCCC', @params );
     my $retval = send_packet( $dev, $tbuf );
+
     #print "Commmand retval $retval \n";
     return $retval;
 }
