@@ -173,12 +173,65 @@ sub receive_frames($){
     #pick up frames from the packets obtained from the device
     while(1){
         if ($packets[0] < 0xD1 || $packets[0] > 0xD9){
+            print "bad input sequence frames first elements mast be in [0xD1, 0xD9] interval\n";
+            last;
+        }
+        if($packets[0] == 0xD1 && @packets == 1){
+            #oh man we have only on octet here
+            @frame = (0xD1);
+            push (@frames, \@frame);
+        }elsif(@packets < 2 || @packets < $packets[1]){
+            #something wrontg with a frame we have, it has length less then in packets[1], 
+            #so this is bad packet
+            print "Packet lenght is less than in $packets[1]\n";
+            last;
+        }elsif(@packets < 8){
+            #packet length mas be no less than 8
+            print "Packet lenght is less than 8\n";
+            last;
+        }else{
+            #get frame
+            my @frame = @packets[0, $#packets + 1];
+            #trancate packets sequence
+            @packets = @packets[$packets[1], @packets];
+            
+            #validate frame with checksumm
+            
+            
+             # The last 2 octets of D2 - D9 frames are always the low and high byte
+            # of the checksum. We ignore all frames that don't have a matching
+            # checksum.
+            if self.checkSum(frame[0:len(frame)-2],
+                           frame[len(frame) - 2] |
+                           (frame[len(frame) - 1] << 8)) == False:
+            self.checkSumErrors += 1
+            break
             
         }
     }
     
     return @frame;
         
+}
+############################################
+# Usage      : $is_valid = validate_check_summ(\@frame[0, @frame - 2],  $frame[@frame -2] | $frame[@frame - 1] << 8);
+# Purpose    : check frame with checksumm
+# Returns    : true if frame is ok and false otherwise
+# Parameters : frame to check, check summ
+# Throws     : none
+# Comments   : n/a
+# See Also   : 
+sub validate_check_summ($$){
+    my ($packet_ref, $check_summ) = @_;
+    my $sum = 0;
+    foreach my $byte (@$packet_ref){
+        $sum += $byte;
+    }
+    if($sum == $check_summ){
+        return 1;
+    }else{
+        return 0;
+    }    
 }
 
 sub getData($) {
