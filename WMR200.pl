@@ -176,12 +176,13 @@ sub decode_timestamp($) {
 ############################################
 # Usage      : my ($rain_rate, $rain_total, $date_of_mesurment_start, $rain_hour, $rain_day) =
 #              decode_rain(\@frame[7,19]);
-# Purpose    : read frame of viriety length from device
-# Returns    : array of octets, that represents device responce
-# Parameters : device handler
+# Purpose    : read rain parameters
+# Returns    : rain rate, rain total since begining of mesurments start, data of mesurment start,
+#               rain in hour, rain in day
+# Parameters : reference to rain part of freame
 # Throws     : no exceptions
 # Comments   : n/a
-# See Also   : read_packet fu
+# See Also   : none
 sub decode_rain($){
     my ($rain_ref) = @_;
     
