@@ -259,6 +259,15 @@ sub decode_wind($) {
 
 }
 
+
+############################################
+# Usage      : my @frames_array = receive_frames($dev);
+# Purpose    : perform on session of frames receiving from a device
+# Returns    : array of frames obtained from a device
+# Parameters : $device handler object
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : none
 sub receive_frames($) {
     my ($dev) = @_;
 
