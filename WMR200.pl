@@ -173,7 +173,7 @@ sub decode_wind($) {
     my ($wind_ref) = @_;
 
     $wind_direction_degries = ( ${$wind_ref}[0] & 0xF ) * 22.5;
-    $wind_speed = ( ( ( ( ${$wind_ref}[1] >> 4 ) & 0xF ) << 8 ) | ${$wind_ref}[2] ) * 0.1;
+    $gust_speed = ( ( ( ( ${$wind_ref}[1] >> 4 ) & 0xF ) << 8 ) | ${$wind_ref}[2] ) * 0.1;
     $avg_speed = ( ( ${$wind_ref}[4] << 4 ) | ( ( ${$wind_ref}[3] >> 4 ) & 0xF ) ) * 0.1;
 
     if ( ${$wind_ref}[5] != 0 or ${$wind_ref}[6] != 0x20 ) {
@@ -214,6 +214,7 @@ sub decode_wind($) {
     #        self.logger.info("Windchill: %.1f C" % windchill)
     #
     #      return (dirDeg, avgSpeed, gustSpeed, windchill)
+    return ($wind_direction_degries, $avg_speed, $gust_speed, $windchill);
 
 }
 
