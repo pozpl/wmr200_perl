@@ -399,6 +399,8 @@ sub get_data($) {
             if($empty_frames_tryes >= 5){
                 last;
             }
+        }else{
+            $empty_frames_tryes = 0
         }        
                 
         sleep(5);        
