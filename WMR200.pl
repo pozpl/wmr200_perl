@@ -146,6 +146,9 @@ sub decode_frame($) {
     my ($frame_ref) = @_;
 
     my $frame_type = ${$frame_ref}[0];
+    if($frame_type == 0xD2){
+        #Historic data reccord
+    }
 }
 
 sub decode_timestamp($) {
@@ -169,6 +172,19 @@ sub decode_timestamp($) {
     return $date_time;
 }
 
+sub decode_rain($){
+    
+}
+
+############################################
+# Usage      : my ($wind_direction_degries, $avg_speed, $gust_speed, $windchill) = decode_wind(\@frame[20, 26]);
+# Purpose    : decode wind part of the frame
+# Returns    : list consits of wind derection, avg speed, gust speed, wind chill
+#               all parameters given in corresponding order
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_packet function definition
 sub decode_wind($) {
     my ($wind_ref) = @_;
 
