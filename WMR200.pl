@@ -2,15 +2,20 @@ use Device::USB;
 use Time::HiRes;
 use DateTime;
 
-my $dev = connect_to_device();
-while ( !$dev ) {
-    $dev = connect_to_device();
+
+while(1){
+    my $dev = connect_to_device();
+    while ( !$dev ) {
+        $dev = connect_to_device();
+        sleep(3);
+    }
+    
+    get_data($dev);
+    #close session
+    disconnect_from_device($dev);    
 }
 
-get_data($dev);
 
-#close session
-disconnect_from_device($dev);
 
 ##
 ## Close the connection to the Weather Station & exit
@@ -18,8 +23,7 @@ disconnect_from_device($dev);
 sub close_ws($) {
     my ($dev) = @_;
     $dev->release_interface(0);
-    undef $dev;
-    exit;
+    undef $dev;    
 }
 
 ############################################
@@ -65,7 +69,7 @@ sub connect_to_device($) {
     print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
 
-    #    clear_recevier($dev);
+    clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
     send_command( $dev, 0xDA );
@@ -382,14 +386,22 @@ sub validate_check_summ($$) {
 # See Also   : read_frame function definition
 sub get_data($) {
     my ($dev) = @_;
-
+    
+    my $empty_frames_tryes = 0;
     while (1) {
         send_command( $dev, 0xD0 );
         my @frames = receive_frames($dev);
         foreach $frame_ref (@frames) {
             print_byte_array( \@frame );
         }
-        sleep(5);
+        if(@frames == 0){
+            $empty_frames_tryes +=1;
+            if($empty_frames_tryes >= 5){
+                last;
+            }
+        }        
+                
+        sleep(5);        
     }
 
 }
