@@ -151,6 +151,7 @@ sub decode_frame($) {
     }
 }
 
+
 sub decode_timestamp($) {
     my ($timestamp_ref) = @_;
 
@@ -172,8 +173,31 @@ sub decode_timestamp($) {
     return $date_time;
 }
 
+############################################
+# Usage      : my ($rain_rate, $rain_total, $date_of_mesurment_start, $rain_hour, $rain_day) =
+#              decode_rain(\@frame[7,19]);
+# Purpose    : read frame of viriety length from device
+# Returns    : array of octets, that represents device responce
+# Parameters : device handler
+# Throws     : no exceptions
+# Comments   : n/a
+# See Also   : read_packet fu
 sub decode_rain($){
+    my ($rain_ref) = @_;
     
+      # Bytes 0 and 1: high and low byte of the current rainfall rate
+      # in 0.1 in/h
+      my $rain_rate = ((${$rain_ref}[1] << 8) | ${$rain_ref}[0]) / 3.9370078;
+      # Bytes 2 and 3: high and low byte of the last hour rainfall in 0.1in
+      my $rain_hour = ((${$rain_ref}[3] << 8) | ${$rain_ref}[2]) / 3.9370078;
+      # Bytes 4 and 5: high and low byte of the last day rainfall in 0.1in
+      my $rain_day = ((${$rain_ref}[5] << 8) | ${$rain_ref}[4]) / 3.9370078;
+      # Bytes 6 and 7: high and low byte of the total rainfall in 0.1in
+      my $rain_total = ((${$rain_ref}[7] << 8) | ${$rain_ref}[6]) / 3.9370078;
+
+      # Bytes 8 - 12 contain the time stamp since the measurement started.
+      my $date_of_mesurment_start = decode_timestamp(\@{$rain_ref}[8,12]);
+      return ($rain_rate, $rain_total, $date_of_mesurment_start, $rain_hour, $rain_day);
 }
 
 ############################################
@@ -181,10 +205,10 @@ sub decode_rain($){
 # Purpose    : decode wind part of the frame
 # Returns    : list consits of wind derection, avg speed, gust speed, wind chill
 #               all parameters given in corresponding order
-# Parameters : device handler
+# Parameters : reference to the wind part of a frame
 # Throws     : no exceptions
 # Comments   : n/a
-# See Also   : read_packet function definition
+# See Also   : none
 sub decode_wind($) {
     my ($wind_ref) = @_;
 
