@@ -142,31 +142,79 @@ sub read_frame($) {
     return @frame;
 }
 
-sub decode_frame($){
-    my ($frame_ref)= @_;
-    
+sub decode_frame($) {
+    my ($frame_ref) = @_;
+
     my $frame_type = ${$frame_ref}[0];
 }
 
-sub decode_timestamp($){
+sub decode_timestamp($) {
     my ($timestamp_ref) = @_;
-    
-    my $minutes = ${$timestamp_ref}[0];
-    my $hours = ${$timestamp_ref}[1];
+
+    my $minutes      = ${$timestamp_ref}[0];
+    my $hours        = ${$timestamp_ref}[1];
     my $day_of_month = ${$timestamp_ref}[2];
     $day_of_month = $day_of_month == 0 ? 1 : $day_of_month;
-    my $month =  ${$timestamp_ref}[3];
-    my $year = 2000 + ${$timestamp_ref}[4];
+    my $month     = ${$timestamp_ref}[3];
+    my $year      = 2000 + ${$timestamp_ref}[4];
     my $date_time = DateTime->new(
-      year       => $year,
-      month      => $month,
-      day        => $day_of_month,
-      hour       => $hours,
-      minute     => $minutes,
-      time_zone  => 'Asia/Vladivostok',
+        year      => $year,
+        month     => $month,
+        day       => $day_of_month,
+        hour      => $hours,
+        minute    => $minutes,
+        time_zone => 'Asia/Vladivostok',
     );
-    
+
     return $date_time;
+}
+
+sub decode_wind($) {
+    my ($wind_ref) = @_;
+
+    $wind_direction_degries = ( ${$wind_ref}[0] & 0xF ) * 22.5;
+    $wind_speed = ( ( ( ( ${$wind_ref}[1] >> 4 ) & 0xF ) << 8 ) | ${$wind_ref}[2] ) * 0.1;
+    $avg_speed = ( ( ${$wind_ref}[4] << 4 ) | ( ( ${$wind_ref}[3] >> 4 ) & 0xF ) ) * 0.1;
+
+    if ( ${$wind_ref}[5] != 0 or ${$wind_ref}[6] != 0x20 ) {
+        $windchill =
+          ( ( ( ${$wind_ref}[6] << 8 ) | ${$wind_ref}[5] ) - 320 ) * ( 5.0 / 90.0 );
+    }
+    else {
+        $windchill = 0;
+    }
+
+    #    def decodeWind(self, record):
+    #      # Byte 0: Wind direction in steps of 22.5 degrees.
+    #      # 0 is N, 1 is NNE and so on. See windDirMap for complete list.
+    #      dirDeg = (record[0] & 0xF) * 22.5
+    #      # Byte 1: Always 0x0C? Maybe high nible is high byte of gust speed.
+    #      # Byts 2: The low byte of gust speed in 0.1 m/s.
+    #      gustSpeed = ((((record[1] >> 4) & 0xF) << 8) | record[2]) * 0.1
+    #      if record[1] != 0x0C:
+    #        self.logger.info("TODO: Wind byte 1: %02X" % record[1])
+    #      # Byte 3: High nibble seems to be low nibble of average speed.
+    #      # Byte 4: Maybe low nibble of high byte and high nibble of low byte
+    #      #          of average speed. Value is in 0.1 m/s
+    #      avgSpeed = ((record[4] << 4) | ((record[3] >> 4) & 0xF)) * 0.1
+    #      if (record[3] & 0x0F) != 0:
+    #        self.logger.info("TODO: Wind byte 3: %02X" % record[3])
+    #      # Byte 5 and 6: Low and high byte of windchill temperature. The value is
+    #      # in 0.1F. If no windchill is available byte 5 is 0 and byte 6 0x20.
+    #      # Looks like OS hasn't had their Mars Climate Orbiter experience yet.
+    #      if record[5] != 0 or record[6] != 0x20:
+    #        windchill = (((record[6] << 8) | record[5]) - 320) * (5.0 / 90.0)
+    #      else:
+    #        windchill = None
+    #
+    #      self.logger.info("Wind Dir: %s" % windDirMap[record[0]])
+    #      self.logger.info("Gust: %.1f m/s" % gustSpeed)
+    #      self.logger.info("Wind: %.1f m/s" % avgSpeed)
+    #      if windchill != None:
+    #        self.logger.info("Windchill: %.1f C" % windchill)
+    #
+    #      return (dirDeg, avgSpeed, gustSpeed, windchill)
+
 }
 
 sub receive_frames($) {
@@ -293,8 +341,6 @@ sub get_data($) {
     }
 
 }
-
-
 
 ############################################
 # Usage      : @packet_bytes = read_packet($dev);
