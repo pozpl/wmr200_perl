@@ -286,6 +286,7 @@ sub receive_frames($) {
         print "Empty input\n";
         return ();
     }
+    print "RECEIVED PACKETS";
     print_byte_array( \@packets );
 
     my @frames;
@@ -388,7 +389,7 @@ sub get_data($) {
         foreach $frame_ref (@frames) {
             print_byte_array( \@frame );
         }
-        sleep(3);
+        sleep(5);
     }
 
 }
@@ -445,7 +446,7 @@ sub print_byte_array($) {
 
     if ( @{$bytes_array_ref} > 0 ) {
         foreach my $byte ( @{$bytes_array_ref} ) {
-            printf "%02x ", $bytes[$i];
+            printf "%02x ", $byte;
         }
         print "\n";
     }
