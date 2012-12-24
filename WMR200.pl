@@ -2,20 +2,18 @@ use Device::USB;
 use Time::HiRes;
 use DateTime;
 
-
-while(1){
+while (1) {
     my $dev = connect_to_device();
     while ( !$dev ) {
         $dev = connect_to_device();
         sleep(3);
     }
-    
+
     get_data($dev);
+
     #close session
-    disconnect_from_device($dev);    
+    disconnect_from_device($dev);
 }
-
-
 
 ##
 ## Close the connection to the Weather Station & exit
@@ -23,7 +21,7 @@ while(1){
 sub close_ws($) {
     my ($dev) = @_;
     $dev->release_interface(0);
-    undef $dev;    
+    undef $dev;
 }
 
 ############################################
@@ -69,7 +67,7 @@ sub connect_to_device($) {
     print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
 
-    clear_recevier($dev);
+    #    clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
     send_command( $dev, 0xDA );
@@ -86,7 +84,8 @@ sub connect_to_device($) {
         print "error bad hello response\n";
         return 0;
     }
-    clear_recevier($dev);
+
+    #    clear_recevier($dev);
     print "\nUSB connected\n";
     return $dev;
 }
@@ -150,11 +149,11 @@ sub decode_frame($) {
     my ($frame_ref) = @_;
 
     my $frame_type = ${$frame_ref}[0];
-    if($frame_type == 0xD2){
+    if ( $frame_type == 0xD2 ) {
+
         #Historic data reccord
     }
 }
-
 
 sub decode_timestamp($) {
     my ($timestamp_ref) = @_;
@@ -187,22 +186,25 @@ sub decode_timestamp($) {
 # Throws     : no exceptions
 # Comments   : n/a
 # See Also   : none
-sub decode_rain($){
+sub decode_rain($) {
     my ($rain_ref) = @_;
-    
-      # Bytes 0 and 1: high and low byte of the current rainfall rate
-      # in 0.1 in/h
-      my $rain_rate = ((${$rain_ref}[1] << 8) | ${$rain_ref}[0]) / 3.9370078;
-      # Bytes 2 and 3: high and low byte of the last hour rainfall in 0.1in
-      my $rain_hour = ((${$rain_ref}[3] << 8) | ${$rain_ref}[2]) / 3.9370078;
-      # Bytes 4 and 5: high and low byte of the last day rainfall in 0.1in
-      my $rain_day = ((${$rain_ref}[5] << 8) | ${$rain_ref}[4]) / 3.9370078;
-      # Bytes 6 and 7: high and low byte of the total rainfall in 0.1in
-      my $rain_total = ((${$rain_ref}[7] << 8) | ${$rain_ref}[6]) / 3.9370078;
 
-      # Bytes 8 - 12 contain the time stamp since the measurement started.
-      my $date_of_mesurment_start = decode_timestamp(\@{$rain_ref}[8,12]);
-      return ($rain_rate, $rain_total, $date_of_mesurment_start, $rain_hour, $rain_day);
+    # Bytes 0 and 1: high and low byte of the current rainfall rate
+    # in 0.1 in/h
+    my $rain_rate = ( ( ${$rain_ref}[1] << 8 ) | ${$rain_ref}[0] ) / 3.9370078;
+
+    # Bytes 2 and 3: high and low byte of the last hour rainfall in 0.1in
+    my $rain_hour = ( ( ${$rain_ref}[3] << 8 ) | ${$rain_ref}[2] ) / 3.9370078;
+
+    # Bytes 4 and 5: high and low byte of the last day rainfall in 0.1in
+    my $rain_day = ( ( ${$rain_ref}[5] << 8 ) | ${$rain_ref}[4] ) / 3.9370078;
+
+    # Bytes 6 and 7: high and low byte of the total rainfall in 0.1in
+    my $rain_total = ( ( ${$rain_ref}[7] << 8 ) | ${$rain_ref}[6] ) / 3.9370078;
+
+    # Bytes 8 - 12 contain the time stamp since the measurement started.
+    my $date_of_mesurment_start = decode_timestamp( \@{$rain_ref}[ 8, 12 ] );
+    return ( $rain_rate, $rain_total, $date_of_mesurment_start, $rain_hour, $rain_day );
 }
 
 ############################################
@@ -259,10 +261,9 @@ sub decode_wind($) {
     #        self.logger.info("Windchill: %.1f C" % windchill)
     #
     #      return (dirDeg, avgSpeed, gustSpeed, windchill)
-    return ($wind_direction_degries, $avg_speed, $gust_speed, $windchill);
+    return ( $wind_direction_degries, $avg_speed, $gust_speed, $windchill );
 
 }
-
 
 ############################################
 # Usage      : my @frames_array = receive_frames($dev);
@@ -290,7 +291,7 @@ sub receive_frames($) {
         print "Empty input\n";
         return ();
     }
-    print "RECEIVED PACKETS";
+    print "RECEIVED PACKETS ";
     print_byte_array( \@packets );
 
     my @frames;
@@ -315,7 +316,7 @@ sub receive_frames($) {
             print "Packet lenght is less than in $packets[1]\n";
             last;
         }
-        elsif ( $packets[1] < 8 || @packets < 9 ) {
+        elsif ( $packets[1] < 8 || @packets < 8 ) {
 
             #packet length mas be no less than 8
             print "Packet lenght is less than 8\n";
@@ -336,10 +337,10 @@ sub receive_frames($) {
             # The last 2 octets of D2 - D9 frames are always the low and high byte
             # of the checksum. We ignore all frames that don't have a matching
             # checksum.
+            my @validate_part = \@frame[ 0, @frame - 3 ];
             if (
                 !validate_check_summ(
-                    \@frame[ 0, @frame - 2 ],
-                    $frame[ @frame - 2 ] | $frame[ @frame - 1 ] << 8
+                    \@validate_part, $frame[ @frame - 2 ] | $frame[ @frame - 1 ] << 8
                 )
               )
             {
@@ -365,7 +366,7 @@ sub receive_frames($) {
 sub validate_check_summ($$) {
     my ( $packet_ref, $check_summ ) = @_;
     my $sum = 0;
-    foreach my $byte (@$packet_ref) {
+    foreach my $byte ( @{$packet_ref} ) {
         $sum += $byte;
     }
     if ( $sum == $check_summ ) {
@@ -386,7 +387,7 @@ sub validate_check_summ($$) {
 # See Also   : read_frame function definition
 sub get_data($) {
     my ($dev) = @_;
-    
+
     my $empty_frames_tryes = 0;
     while (1) {
         send_command( $dev, 0xD0 );
@@ -394,16 +395,17 @@ sub get_data($) {
         foreach $frame_ref (@frames) {
             print_byte_array( \@frame );
         }
-        if(@frames == 0){
-            $empty_frames_tryes +=1;
-            if($empty_frames_tryes >= 5){
+        if ( @frames == 0 ) {
+            $empty_frames_tryes += 1;
+            if ( $empty_frames_tryes >= 20 ) {
                 last;
             }
-        }else{
-            $empty_frames_tryes = 0
-        }        
-                
-        sleep(5);        
+        }
+        else {
+            $empty_frames_tryes = 0;
+        }
+
+        sleep(5);
     }
 
 }
@@ -418,15 +420,22 @@ sub get_data($) {
 # See Also   : read_frame function definition
 sub receive_packet($) {
     my ($dev) = @_;
-    my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
-    if ( $count > 0 ) {
 
-        #        print_bytes( $buf, $count );
-        my @bytes = unpack( "C$count", $buf );
-        return @bytes;
-    }
-    else {
-        return ();
+    while (1) {
+        my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
+        if ( $count > 0 ) {
+            my @bytes = unpack( "C$count", $buf );
+            if ( $count != 8 ) {
+                print "bad packet length > 8";
+                next;
+            }
+            elsif ( $bytes[0] > 7 ) {
+                print "length of minigfull data > 7";
+                next;
+            }else{
+                return @bytes;
+            }
+        }
     }
 }
 
