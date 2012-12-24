@@ -420,23 +420,34 @@ sub get_data($) {
 # See Also   : read_frame function definition
 sub receive_packet($) {
     my ($dev) = @_;
-
+    my $read_errors = 0;
     while (1) {
         my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
         if ( $count > 0 ) {
             my @bytes = unpack( "C$count", $buf );
             if ( $count != 8 ) {
                 print "bad packet length > 8";
+                $read_errors++;
                 next;
             }
             elsif ( $bytes[0] > 7 ) {
                 print "length of minigfull data > 7";
+                $read_errors++;
                 next;
             }else{
                 return @bytes;
             }
+        }else{
+            $read_errors++;
+        }
+        
+        if($read_errors > 20){
+            last;
         }
     }
+    
+    return ();
+    
 }
 
 sub print_bytes($) {
