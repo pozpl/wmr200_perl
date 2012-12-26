@@ -2,18 +2,18 @@ use Device::USB;
 use Time::HiRes;
 use DateTime;
 
-while (1) {
     my $dev = connect_to_device();
     while ( !$dev ) {
         $dev = connect_to_device();
         sleep(3);
     }
+while (1) {
+
 
     get_data($dev);
-
-    #close session
-    disconnect_from_device($dev);
 }
+#close session
+disconnect_from_device($dev);
 
 ##
 ## Close the connection to the Weather Station & exit
@@ -59,20 +59,21 @@ sub connect_to_device($) {
 
     #    clear_recevier($dev);
     print "done\n";
-    print "Send ready sequence...";
-    send_ready($dev);
-
-    #    clear_recevier($dev);
-    print "done\n";
+    
+#    print "Send ready sequence...";
+#    send_ready($dev);
+#    clear_recevier($dev);
+#    print "done\n";
+    
     print "Cancel all previous device PC connections...";
     send_command( $dev, 0xDF );
 
-    #    clear_recevier($dev);
+    clear_recevier($dev);
     print "done\n";
     print "Send hello packet...";
     send_command( $dev, 0xDA );
-    my @hello_packet = receive_packet($dev);
-
+    my @hello_packet = receive_hello_packet($dev);#receive_packet($dev, 1);
+    return $dev;
     if ( @hello_packet == 0 ) {
         print "error no responce\n";
         return 0;
@@ -117,9 +118,9 @@ sub disconnect_from_device($) {
 # See Also   : read_packet function definition
 sub clear_recevier($) {
     my ($dev) = @_;
-    my $packet = receive_packet($dev);
+    my $packet = receive_packet($dev, 1);
     while ( $packet[0] > 0 ) {
-        $packet = receive_packet($dev);
+        $packet = receive_packet($dev, 1);
     }
 }
 
@@ -340,7 +341,7 @@ sub receive_frames($) {
             my @validate_part = \@frame[ 0, @frame - 3 ];
             if (
                 !validate_check_summ(
-                    \@validate_part, $frame[ @frame - 2 ] | $frame[ @frame - 1 ] << 8
+                    \@validate_part, $frame[ @frame - 2 ] | ($frame[ @frame - 1 ] << 8)
                 )
               )
             {
@@ -356,7 +357,7 @@ sub receive_frames($) {
 
 }
 ############################################
-# Usage      : $is_valid = validate_check_summ(\@frame[0, @frame - 2],  $frame[@frame -2] | $frame[@frame - 1] << 8);
+# Usage      : $is_valid = validate_check_summ(\@frame[0, @frame - 3],  $frame[@frame -2] | $frame[@frame - 1] << 8);
 # Purpose    : check frame with checksumm
 # Returns    : true if frame is ok and false otherwise
 # Parameters : frame to check, check summ
@@ -369,6 +370,7 @@ sub validate_check_summ($$) {
     foreach my $byte ( @{$packet_ref} ) {
         $sum += $byte;
     }
+    print "Frame summ = $sum and check summ $check_summ\n";
     if ( $sum == $check_summ ) {
         return 1;
     }
@@ -397,8 +399,8 @@ sub get_data($) {
         }
         if ( @frames == 0 ) {
             $empty_frames_tryes += 1;
-            if ( $empty_frames_tryes >= 20 ) {
-                last;
+            if ( $empty_frames_tryes >= 3 ) {
+                next;
             }
         }
         else {
@@ -418,13 +420,15 @@ sub get_data($) {
 # Throws     : no exceptions
 # Comments   : n/a
 # See Also   : read_frame function definition
-sub receive_packet($) {
-    my ($dev) = @_;
+sub receive_packet($$) {
+    my ($dev, $max_errors) = @_;
     my $read_errors = 0;
+    $max_errors = $max_errors ? $max_errors : 5;
     while (1) {
         my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
         if ( $count > 0 ) {
             my @bytes = unpack( "C$count", $buf );
+            print_bytes($buf);
             if ( $count != 8 ) {
                 print "bad packet length > 8";
                 $read_errors++;
@@ -441,13 +445,19 @@ sub receive_packet($) {
             $read_errors++;
         }
         
-        if($read_errors > 20){
+        if($read_errors > $max_errors){
             last;
         }
     }
     
     return ();
     
+}
+
+sub receive_hello_packet($){
+    my $count = $dev->interrupt_read( 0x81, $buf = "", 8, 2000 );
+    my @bytes = unpack( "C$count", $buf );
+    return @bytes;
 }
 
 sub print_bytes($) {
@@ -499,8 +509,8 @@ sub send_command($$) {
     my ( $dev, $command ) = @_;
     my @params = ( 0x01, $command, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 );
     my $tbuf = pack( 'CCCCCCCC', @params );
+    
     my $retval = send_packet( $dev, $tbuf );
-
     #print "Commmand retval $retval \n";
     return $retval;
 }
@@ -509,7 +519,10 @@ sub send_packet($$) {
     my ( $dev, $packet ) = @_;
     print $command . "\n";
     my $tbuf = pack( 'CCCCCCCC', @$packet );
-    my $retval = $dev->control_msg( 0x21, 9, 0x200, 0, $tbuf, 8, 1000 );
+    my $retval = -1;
+    while($retval < 0){
+        $retval = $dev->control_msg( 0x21, 9, 0x200, 0, $tbuf, 8, 1000 );
+    }
     return $retval;
 }
 
